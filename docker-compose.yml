@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+
+  redis_fo_celery:
+    container_name: redis_fo_celery
+    image: redis:6.2-alpine
+
+  celery_worker:
+    container_name: celery_worker
+    build: .
+    command: celery -A celery_tasks.celery worker --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      - redis_fo_celery
+
+  celery_beat:
+    container_name: celery_beat
+    build: .
+    command: celery -A celery_tasks.celery beat --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      - redis_fo_celery
+      - celery_worker
+
+  celery_flower:
+    container_name: celery_flower
+    build: .
+    command: celery -A celery_tasks.celery flower --port=5555
+    ports:
+      - 5556:5555
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      - redis_fo_celery
+
